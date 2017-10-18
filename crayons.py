@@ -67,7 +67,19 @@ class ColoredString(object):
     @property
     def color_str(self):
         style = 'BRIGHT' if self.bold else 'NORMAL'
-        c = '%s%s%s%s%s' % (getattr(colorama.Fore, self.color), getattr(colorama.Style, style), self.s, colorama.Fore.RESET, getattr(colorama.Style, 'NORMAL'))
+        c = '%s%s' % (getattr(colorama.Fore, self.color), getattr(colorama.Style, style))
+
+        # Find ANSI terminal escape sequences and add color info after them in the string
+        s = self.s
+        escape_regex = re.compile(r"""(?:\x1b\[[0-9]+m){2} # the first two ANSI esc seqs
+                                      (?:(?!\x1b)+.*)+     # anything not starting with esc seq
+                                      (?:\x1b\[[0-9]+m){2} # the last two ANSI esc seqs""", re.X)
+        escape_seqs = set(re.findall(escape_regex, s))
+        for seq in escape_seqs:
+            spl = s.split(seq)
+            s = (seq+c).join(spl)
+
+        c = '%s%s%s%s' % (c, s, getattr(colorama.Style, 'NORMAL'), colorama.Fore.RESET)
 
         if self.always_color:
             return c
@@ -75,7 +87,6 @@ class ColoredString(object):
             return c
         else:
             return self.s
-
 
     def __len__(self):
         return len(self.s)
