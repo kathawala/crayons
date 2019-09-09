@@ -1,14 +1,8 @@
 # -*- coding: utf-8 -*-
-
-"""
-clint.colored
-~~~~~~~~~~~~~
-
-This module provides a simple and elegant wrapper for colorama.
-
-"""
+"""A simple and elegant wrapper for colorama."""
 
 import os
+from random import choice, seed
 import re
 import sys
 
@@ -16,14 +10,17 @@ import colorama
 
 PY3 = sys.version_info[0] >= 3
 
+
 __all__ = (
     'red', 'green', 'yellow', 'blue',
     'black', 'magenta', 'cyan', 'white',
-    'clean', 'disable', 'enable'
+    'clean', 'disable', 'enable', 'random'
 )
 
 colorama.init()
-COLORS = __all__[:-2]
+seed()
+COLORS = __all__[:-4]
+
 
 if 'get_ipython' in dir():
     """
@@ -38,11 +35,13 @@ else:
 if os.getenv("TERM") == "dumb":
     DISABLE_COLOR = True
 
+
 class ColoredString(object):
     """Enhanced string for __len__ operations on Colored output."""
+
     def __init__(self, color, s, always_color=False, bold=False):
         super(ColoredString, self).__init__()
-        if not PY3 and isinstance(s, unicode):
+        if not PY3 and isinstance(s, unicode):  # noqa: F821
             self.s = s.encode('utf-8')
         else:
             self.s = s
@@ -82,7 +81,7 @@ class ColoredString(object):
             spl = s.split(seq)
             s = (seq+c).join(spl)
 
-        c = '%s%s%s%s' % (c, s, getattr(colorama.Style, 'NORMAL'), colorama.Fore.RESET)
+        c = '%s%s%s%s' % (c, s, colorama.Style.NORMAL, colorama.Fore.RESET)
 
         if self.always_color:
             return c
@@ -126,7 +125,7 @@ class ColoredString(object):
 
 
 def clean(s):
-    strip = re.compile(r"([^-_a-zA-Z0-9!@#%&=,/'\";:~`\$\^\*\(\)\+\[\]\.\{\}\|\?\<\>\\]+|[^\s]+)")
+    strip = re.compile(r"([^-_a-zA-Z0-9!@#%&=,/'\";:~`\$\^\*\(\)\+\[\]\.\{\}\|\?\<\>\\]+|[^\s]+)")  # noqa: E501
     txt = strip.sub('', str(s))
 
     strip = re.compile(r'\[\d+m')
@@ -134,21 +133,35 @@ def clean(s):
 
     return txt
 
-_colors = {x: x.upper() for x in __all__[:-3]}
+
+_colors = {x: x.upper() for x in COLORS}
 _colors['normal'] = 'RESET'
 
 for key, val in _colors.items():
     function = eval(
-        'lambda s, always=False, bold=False: ColoredString("{}", s, always_color=always, bold=bold)'.format(val))
+        'lambda s, always=False, bold=False: ColoredString("{}", s, always_color=always, bold=bold)'.format(val))  # noqa: E501
     locals()[key] = function
 
 del key, val, _colors, function
+
+
+def random(string, always=False, bold=False, colors=COLORS):
+    """Selects a color at random from a list."""
+    colors = list(filter(lambda color: color in COLORS, colors)) or COLORS
+    return ColoredString(
+        choice(colors).upper(),
+        string,
+        always_color=always,
+        bold=bold
+    )
+
 
 def disable():
     """Disables colors."""
     global DISABLE_COLOR
 
     DISABLE_COLOR = True
+
 
 def enable():
     """Enables colors."""
